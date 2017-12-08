@@ -12,6 +12,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 
+import com.example.masters.sourceafis_testjava.futronictech.AnsiSDKLib;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
