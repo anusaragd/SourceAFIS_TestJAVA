@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Message;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,6 +15,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 
 import com.example.masters.sourceafis_testjava.futronictech.AnsiSDKLib;
+import com.example.masters.sourceafis_testjava.futronictech.UsbDeviceDataExchangeImpl;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,6 +25,10 @@ import java.io.FileOutputStream;
 public class Main2Activity extends AppCompatActivity {
      Button mButtonCapture;
      CheckBox mUsbHostMode;
+
+    private AnsiSDKLib devScan = null;
+
+    private UsbDeviceDataExchangeImpl usb_host_ctx = null;
 
 
     @Override
@@ -58,8 +65,66 @@ public class Main2Activity extends AppCompatActivity {
 
         mUsbHostMode.setChecked(true);
         mUsbHostMode.setVisibility(View.GONE);
+        usb_host_ctx = new UsbDeviceDataExchangeImpl(this, mHandler);
 
     }
+
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MESSAGE_SHOW_MSG:
+                    String showMsg = (String) msg.obj;
+                    mTxtMessage.setText(showMsg);
+                    break;
+
+                case MESSAGE_SHOW_ERROR_MSG:
+                    String showErr = (String) msg.obj;
+                    mErrMessage.setText(showErr);
+                    mTxtMessage.setText("");
+                    break;
+
+                case MESSAGE_SHOW_IMAGE:
+                    mFingerImage.setImageBitmap(mBitmapFP);
+                    break;
+                case MESSAGE_END_OPERATION:
+                    EndOperation();
+                    break;
+
+                case UsbDeviceDataExchangeImpl.MESSAGE_ALLOW_DEVICE: {
+                    if (usb_host_ctx.ValidateContext()) {
+                        switch (mPendingOperation) {
+                            case OPERATION_CAPTURE:
+                                StartCapture();
+                                break;
+
+                            case OPERATION_CREATE:
+                                StartCreate();
+                                break;
+
+                            case OPERATION_VERIFY:
+                                StartVerify();
+                                break;
+
+                            case OPERATION_IDENTIFY:
+                                StartIdentify();
+                                break;
+                        }
+                    } else {
+                        mErrMessage.setText("Can't open scanner device");
+                    }
+
+                    break;
+                }
+
+                case UsbDeviceDataExchangeImpl.MESSAGE_DENY_DEVICE: {
+                    mErrMessage.setText("User deny scanner device");
+                    break;
+                }
+
+            }
+        }
+    };
 
     private void EnableControls(boolean enable) {
         mButtonCapture.setEnabled(enable);
