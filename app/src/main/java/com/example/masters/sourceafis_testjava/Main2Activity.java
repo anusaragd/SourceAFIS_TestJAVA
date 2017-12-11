@@ -604,76 +604,76 @@ public class Main2Activity extends AppCompatActivity {
         }
     }
 
-    private class IdentifyThread extends OperationThread {
-        private AnsiSDKLib ansi_lib = null;
-        private boolean mUseUsbHost = true;
-        private int mFinger = 0;
-        private float mMatchScore = 0;
-        private String mTemplateStore = "";
+                        private class IdentifyThread extends OperationThread {
+                            private AnsiSDKLib ansi_lib = null;
+                            private boolean mUseUsbHost = true;
+                            private int mFinger = 0;
+                            private float mMatchScore = 0;
+                            private String mTemplateStore = "";
 
 
-        public IdentifyThread(boolean useUsbHost, int finger, float matchScore, String templateStore) {
-            ansi_lib = new AnsiSDKLib();
-            mUseUsbHost = useUsbHost;
+                            public IdentifyThread(boolean useUsbHost, int finger, float matchScore, String templateStore) {
+                                ansi_lib = new AnsiSDKLib();
+                                mUseUsbHost = useUsbHost;
 
-            mFinger = finger;
-            mMatchScore = matchScore;
-        }
+                                mFinger = finger;
+                                mMatchScore = matchScore;
+                            }
 
-        public void run() {
-            boolean dev_open = false;
+                            public void run() {
+                                boolean dev_open = false;
 
-            try {
-                if (mUseUsbHost) {
-                    if (!ansi_lib.OpenDeviceCtx(usb_host_ctx)) {
-                        mHandler.obtainMessage(MESSAGE_SHOW_ERROR_MSG, -1, -1, ansi_lib.GetErrorMessage()).sendToTarget();
-                        mHandler.obtainMessage(MESSAGE_END_OPERATION).sendToTarget();
-                        return;
-                    }
-                } else {
-                    if (!ansi_lib.OpenDevice(0)) {
-                        mHandler.obtainMessage(MESSAGE_SHOW_ERROR_MSG, -1, -1, ansi_lib.GetErrorMessage()).sendToTarget();
-                        mHandler.obtainMessage(MESSAGE_END_OPERATION).sendToTarget();
-                        return;
-                    }
-                }
+                                try {
+                                    if (mUseUsbHost) {
+                                        if (!ansi_lib.OpenDeviceCtx(usb_host_ctx)) {
+                                            mHandler.obtainMessage(MESSAGE_SHOW_ERROR_MSG, -1, -1, ansi_lib.GetErrorMessage()).sendToTarget();
+                                            mHandler.obtainMessage(MESSAGE_END_OPERATION).sendToTarget();
+                                            return;
+                                        }
+                                    } else {
+                                        if (!ansi_lib.OpenDevice(0)) {
+                                            mHandler.obtainMessage(MESSAGE_SHOW_ERROR_MSG, -1, -1, ansi_lib.GetErrorMessage()).sendToTarget();
+                                            mHandler.obtainMessage(MESSAGE_END_OPERATION).sendToTarget();
+                                            return;
+                                        }
+                                    }
 
-                dev_open = true;
+                                    dev_open = true;
 
-                if (!ansi_lib.FillImageSize()) {
-                    mHandler.obtainMessage(MESSAGE_SHOW_ERROR_MSG, -1, -1, ansi_lib.GetErrorMessage()).sendToTarget();
-                    mHandler.obtainMessage(MESSAGE_END_OPERATION).sendToTarget();
-                    return;
-                }
+                                    if (!ansi_lib.FillImageSize()) {
+                                        mHandler.obtainMessage(MESSAGE_SHOW_ERROR_MSG, -1, -1, ansi_lib.GetErrorMessage()).sendToTarget();
+                                        mHandler.obtainMessage(MESSAGE_END_OPERATION).sendToTarget();
+                                        return;
+                                    }
 
-                byte[] img_buffer = new byte[ansi_lib.GetImageSize()];
+                                    byte[] img_buffer = new byte[ansi_lib.GetImageSize()];
 
-                for (; ; ) {
-                    if (IsCanceled()) {
-                        break;
-                    }
+                                    for (; ; ) {
+                                        if (IsCanceled()) {
+                                            break;
+                                        }
 
-                    int tmplSize = ansi_lib.GetMaxTemplateSize();
-                    byte[] templateBase = new byte[tmplSize];
-                    int[] realSize = new int[1];
+                                        int tmplSize = ansi_lib.GetMaxTemplateSize();
+                                        byte[] templateBase = new byte[tmplSize];
+                                        int[] realSize = new int[1];
 
-                    long lT1 = SystemClock.uptimeMillis();
-                    if (ansi_lib.CreateTemplate(mFinger, img_buffer, templateBase, realSize)) {
-                        long op_time = SystemClock.uptimeMillis() - lT1;
+                                        long lT1 = SystemClock.uptimeMillis();
+                                        if (ansi_lib.CreateTemplate(mFinger, img_buffer, templateBase, realSize)) {
+                                            long op_time = SystemClock.uptimeMillis() - lT1;
 
-                        String op_info = String.format("Create done. Time is %d(ms)", op_time);
-                        mHandler.obtainMessage(MESSAGE_SHOW_MSG, -1, -1, op_info).sendToTarget();
+                                            String op_info = String.format("Create done. Time is %d(ms)", op_time);
+                                            mHandler.obtainMessage(MESSAGE_SHOW_MSG, -1, -1, op_info).sendToTarget();
 
-                        mBitmapFP = CreateFingerBitmap(
-                                ansi_lib.GetImageWidth(),
-                                ansi_lib.GetImageHeight(),
-                                img_buffer);
-                        mHandler.obtainMessage(MESSAGE_SHOW_IMAGE).sendToTarget();
+                                            mBitmapFP = CreateFingerBitmap(
+                                                    ansi_lib.GetImageWidth(),
+                                                    ansi_lib.GetImageHeight(),
+                                                    img_buffer);
+                                            mHandler.obtainMessage(MESSAGE_SHOW_IMAGE).sendToTarget();
 
-                        FindTemplate(templateBase);
+                                            FindTemplate(templateBase);
 
-                        break;
-                    } else {
+                                            break;
+                                        } else {
                         int lastError = ansi_lib.GetErrorCode();
 
                         if (lastError == AnsiSDKLib.FTR_ERROR_EMPTY_FRAME ||
