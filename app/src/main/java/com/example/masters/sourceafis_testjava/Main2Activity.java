@@ -4,6 +4,11 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Paint;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
@@ -11,8 +16,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ImageView;
+import android.widget.Spinner;
+import android.widget.TextView;
 
 import com.example.masters.sourceafis_testjava.futronictech.AnsiSDKLib;
 import com.example.masters.sourceafis_testjava.futronictech.UsbDeviceDataExchangeImpl;
@@ -26,17 +35,67 @@ public class Main2Activity extends AppCompatActivity {
      Button mButtonCapture;
      CheckBox mUsbHostMode;
 
+    private String mNewTmplName = null;
+
     private AnsiSDKLib devScan = null;
+    private Button mButtonStop;
+    private CheckBox mSaveIso;
+    private CheckBox mSaveAnsi;
+
+    private Spinner mFinger;
+    private Spinner mMatchScore;
 
     private UsbDeviceDataExchangeImpl usb_host_ctx = null;
+    private int mPendingOperation = 0;
 
+    private TextView mErrMessage;
+    private TextView mTxtMessage;
+    private ImageView mFingerImage;
+    private static Bitmap mBitmapFP = null;
+    private OperationThread mOperationThread = null;
+    private float[] mMatchScoreValue = new float[6];
+
+
+    //Pending operations
+    private static final int OPERATION_CAPTURE = 1;
+    private static final int OPERATION_CREATE = 2;
+    private static final int OPERATION_VERIFY = 3;
+    private static final int OPERATION_IDENTIFY = 4;
+
+
+    public static final int MESSAGE_SHOW_MSG = 1;
+    public static final int MESSAGE_SHOW_IMAGE = 2;
+    public static final int MESSAGE_SHOW_ERROR_MSG = 3;
+    public static final int MESSAGE_END_OPERATION = 4;
+
+    // Intent request codes
+    private static final int REQUEST_INPUT_TMPL_NAME = 1;
+    private static final int REQUEST_SELECT_TMPL_NAME = 2;
+
+    private static final String kAnsiTemplatePostfix = "(ANSI)";
+    private static final String kIsoTemplatePostfix = "(ISO)";
+
+    public static String mDbDir;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
 
+        mMatchScoreValue[0] = AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_LOW;
+        mMatchScoreValue[1] = AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_LOW_MEDIUM;
+        mMatchScoreValue[2] = AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_MEDIUM;
+        mMatchScoreValue[3] = AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_HIGH_MEDIUM;
+        mMatchScoreValue[4] = AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_HIGH;
+        mMatchScoreValue[5] = AnsiSDKLib.FTR_ANSISDK_MATCH_SCORE_VERY_HIGH;
+
         mUsbHostMode = (CheckBox) findViewById(R.id.checkBoxUsbHost);
+        mFingerImage = (ImageView) findViewById(R.id.imageViewFinger);
+
+        mSaveAnsi = (CheckBox) findViewById(R.id.checkBoxSaveTmplAnsi);
+        mSaveIso = (CheckBox) findViewById(R.id.checkBoxSaveTmplISO);
+
+        mButtonStop = (Button) findViewById(R.id.buttonStop);
 
 
         mButtonCapture = (Button) findViewById(R.id.buttonCapture);
@@ -62,6 +121,18 @@ public class Main2Activity extends AppCompatActivity {
                 }
             }
         });
+
+        mFinger = (Spinner) findViewById(R.id.spinnerFinger);
+        ArrayAdapter<CharSequence> adapter1 = ArrayAdapter.createFromResource(this, R.array.FingerNameArray, android.R.layout.simple_spinner_item);
+        adapter1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mFinger.setAdapter(adapter1);
+        mFinger.setSelection(0);
+
+        mMatchScore = (Spinner) findViewById(R.id.spinnerMatchScore);
+        ArrayAdapter<CharSequence> adapter2 = ArrayAdapter.createFromResource(this, R.array.MatchScoreArray, android.R.layout.simple_spinner_item);
+        adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mMatchScore.setAdapter(adapter2);
+        mMatchScore.setSelection(2);
 
         mUsbHostMode.setChecked(true);
         mUsbHostMode.setVisibility(View.GONE);
@@ -128,6 +199,16 @@ public class Main2Activity extends AppCompatActivity {
 
     private void EnableControls(boolean enable) {
         mButtonCapture.setEnabled(enable);
+        mUsbHostMode.setEnabled(enable);
+
+        mSaveAnsi.setEnabled(enable);
+        mSaveIso.setEnabled(enable);
+
+        mFinger.setEnabled(enable);
+        mMatchScore.setEnabled(enable);
+
+        mButtonStop.setEnabled(!enable);
+
     }
 
     private void StartCapture() {
@@ -678,22 +759,22 @@ public class Main2Activity extends AppCompatActivity {
         }
     }
 
-    private void EnableControls(boolean enable) {
-        mButtonCapture.setEnabled(enable);
-//        mButtonCreate.setEnabled(enable);
-//        mButtonVerify.setEnabled(enable);
-//        mButtonIdentify.setEnabled(enable);
-
-        mUsbHostMode.setEnabled(enable);
-
-        mSaveAnsi.setEnabled(enable);
-        mSaveIso.setEnabled(enable);
-
-        mFinger.setEnabled(enable);
-        mMatchScore.setEnabled(enable);
-
-        mButtonStop.setEnabled(!enable);
-    }
+//    private void EnableControls(boolean enable) {
+//        mButtonCapture.setEnabled(enable);
+////        mButtonCreate.setEnabled(enable);
+////        mButtonVerify.setEnabled(enable);
+////        mButtonIdentify.setEnabled(enable);
+//
+//        mUsbHostMode.setEnabled(enable);
+//
+//        mSaveAnsi.setEnabled(enable);
+//        mSaveIso.setEnabled(enable);
+//
+//        mFinger.setEnabled(enable);
+//        mMatchScore.setEnabled(enable);
+//
+//        mButtonStop.setEnabled(!enable);
+//    }
 
     private void PrepareOperation() {
         mTxtMessage.setText("Put finger on scanner");
@@ -795,6 +876,38 @@ public class Main2Activity extends AppCompatActivity {
         }
 
     }
+    private void StartCreate() {
+        Intent usernameIntent = new Intent(this, AskTemplateName.class);
+        startActivityForResult(usernameIntent, REQUEST_INPUT_TMPL_NAME);
+    }
+    private void StartVerify() {
+        Intent selectuserIntent = new Intent(this, SelectTemplateName.class);
+        startActivityForResult(selectuserIntent, REQUEST_SELECT_TMPL_NAME);
+    }
+    private Bitmap CreateFingerBitmap(int imgWidth, int imgHeight, byte[] imgBytes) {
+        int[] pixels = new int[imgWidth * imgHeight];
+        for (int i = 0; i < imgWidth * imgHeight; i++) {
+            pixels[i] = imgBytes[i];
+        }
+
+        Bitmap emptyBmp = Bitmap.createBitmap(pixels, imgWidth, imgHeight, Bitmap.Config.RGB_565);
+
+        int width, height;
+        height = emptyBmp.getHeight();
+        width = emptyBmp.getWidth();
+
+        Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        Canvas c = new Canvas(result);
+        Paint paint = new Paint();
+        ColorMatrix cm = new ColorMatrix();
+        cm.setSaturation(0);
+        ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
+        paint.setColorFilter(f);
+        c.drawBitmap(emptyBmp, 0, 0, paint);
+
+        return result;
+    }
+
 
 
 }
